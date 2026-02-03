@@ -1,23 +1,108 @@
 """
-File System Generator for Recursion Assignment
-Generates a simulated compromised file system with nested directories
-and files with various extensions including .encrypted files.
+Recursion Assignment Starter Code
+Complete the recursive functions below to analyze the compromised file system.
 """
 
 import os
-import random
 import shutil
+import random
 
-def generate_breach_data(root_path="breach_data", max_depth=8, max_dirs=5, max_files=10):
-    """
-    Generate a realistic file system structure with simulated breach data.
+# ============================================================================
+# PART 1: RECURSION WARM-UPS
+# ============================================================================
+
+def sum_list(numbers):
+    if len(numbers) == 0:
+        return 0
+    return numbers[0] + sum_list(numbers[1:])
+
+
+def count_even(numbers):
+    if len(numbers) == 0:
+        return 0
     
-    Args:
-        root_path: Root directory name
-        max_depth: Maximum nesting depth
-        max_dirs: Maximum subdirectories per level
-        max_files: Maximum files per directory
-    """
+    first_is_even = 1 if numbers[0] % 2 == 0 else 0
+    return first_is_even + count_even(numbers[1:])
+
+
+def find_strings_with(strings, target):
+    if len(strings) == 0:
+        return []
+    
+    if target in strings[0]:
+        return [strings[0]] + find_strings_with(strings[1:], target)
+    else:
+        return find_strings_with(strings[1:], target)
+
+
+# ============================================================================
+# PART 2: COUNT ALL FILES
+# ============================================================================
+
+def count_files(directory_path):
+    if not os.path.isdir(directory_path):
+        return 0
+    
+    total_files = 0
+    
+    try:
+        items = os.listdir(directory_path)
+        
+        for item in items:
+            item_path = os.path.join(directory_path, item)
+            
+            if os.path.isfile(item_path):
+                total_files += 1
+            elif os.path.isdir(item_path):
+                total_files += count_files(item_path)
+    except (PermissionError, OSError):
+        return 0
+    
+    return total_files
+
+
+# ============================================================================
+# PART 3: FIND INFECTED FILES
+# ============================================================================
+
+def find_infected_files(directory_path, extension=".encrypted"):
+    infected_files = []
+    
+    if os.path.isfile(directory_path):
+        if directory_path.endswith(extension):
+            infected_files.append(directory_path)
+        return infected_files
+    
+    if not os.path.isdir(directory_path):
+        return infected_files
+    
+    try:
+        items = os.listdir(directory_path)
+        
+        for item in items:
+            item_path = os.path.join(directory_path, item)
+            
+            if os.path.isfile(item_path):
+                if item_path.endswith(extension):
+                    infected_files.append(item_path)
+            elif os.path.isdir(item_path):
+                infected_files.extend(find_infected_files(item_path, extension))
+    except (PermissionError, OSError):
+        pass
+    
+    return infected_files
+
+# ============================================================================
+# TEST DIRECTORY GENERATION FUNCTIONS
+# ============================================================================
+
+def generate_breach_data():
+    """Generate a simulated compromised file system for analysis."""
+    root_path = "breach_data"
+    max_depth = 4
+    max_files = 8
+    max_dirs = 3
+    
     # Clean up existing directory if it exists
     if os.path.exists(root_path):
         shutil.rmtree(root_path)
@@ -149,7 +234,88 @@ def generate_test_cases():
     print("Test Case 2 (case2_nested): 4 files total (1 root + 3 in subdir), max depth 1")
     print("Test Case 3 (case3_infected): 5 files total, 3 .encrypted files, max depth 2")
 
+
+# ============================================================================
+# TESTING & BENCHMARKING
+# ============================================================================
+
 if __name__ == "__main__":
+    # Generate test directories first
     generate_test_cases()
     print("\n" + "="*60 + "\n")
     generate_breach_data()
+    
+    print("\n" + "="*60)
+    print("RUNNING TESTS")
+    print("="*60)
+    
+    # Test the recursive warm-up functions
+    print("\n=== PART 1: RECURSION WARM-UPS ===")
+    print("\nTest sum_list:")
+    print(f"  sum_list([1, 2, 3, 4]) = {sum_list([1, 2, 3, 4])} (expected: 10)")
+    print(f"  sum_list([]) = {sum_list([])} (expected: 0)")
+    print(f"  sum_list([5, 5, 5]) = {sum_list([5, 5, 5])} (expected: 15)")
+
+
+    print("\nTest count_even:")
+    print(f"  count_even([1, 2, 3, 4, 5, 6]) = {count_even([1, 2, 3, 4, 5, 6])} (expected: 3)")
+    print(f"  count_even([1, 3, 5]) = {count_even([1, 3, 5])} (expected: 0)")
+    print(f"  count_even([2, 4, 6]) = {count_even([2, 4, 6])} (expected: 3)")
+
+    print("\nTest find_strings_with:")
+    result = find_strings_with(["hello", "world", "help", "test"], "hel")
+    print(f"  find_strings_with(['hello', 'world', 'help', 'test'], 'hel') = {result}")
+    print(f"  (expected: ['hello', 'help'])")
+        
+    result = find_strings_with(["cat", "dog", "bird"], "z")
+    print(f"  find_strings_with(['cat', 'dog', 'bird'], 'z') = {result}")
+    print(f"  (expected: [])")
+    
+    print("\n" + "="*60)
+    print("=== PART 2 & 3: FILE SYSTEM TESTS ===")
+    print("="*60)
+    
+    ## 1. Test count_files function on test cases
+    print("\n1. Testing count_files on test cases:")
+    print(f"   Total files (Test Case 1): {count_files('test_cases/case1_flat')} (expected: 5)")
+    print(f"   Total files (Test Case 2): {count_files('test_cases/case2_nested')} (expected: 4)")
+    print(f"   Total files (Test Case 3): {count_files('test_cases/case3_infected')} (expected: 5)")
+    
+    ## 2. Test count_files on breach_data
+    print("\n2. Testing count_files on breach_data:")
+    print(f"   Total files (breach_data): {count_files('breach_data')}")
+    
+    ## 3. Test find_infected_files function on test cases
+    print("\n3. Testing find_infected_files on test cases:")
+    infected_case1 = find_infected_files("test_cases/case1_flat")
+    print(f"   Infected files (Test Case 1): {len(infected_case1)} (expected: 0)")
+    
+    infected_case2 = find_infected_files("test_cases/case2_nested")
+    print(f"   Infected files (Test Case 2): {len(infected_case2)} (expected: 0)")
+    
+    infected_case3 = find_infected_files("test_cases/case3_infected")
+    print(f"   Infected files (Test Case 3): {len(infected_case3)} (expected: 3)")
+    
+    ## 4. Test find_infected_files on breach_data
+    print("\n4. Testing find_infected_files on breach_data:")
+    infected_breach_files = find_infected_files("breach_data")
+    print(f"   Total Infected Files (breach_data): {len(infected_breach_files)}")
+    
+    print("\n" + "="*60)
+    print("SUMMARY")
+    print("="*60)
+    
+    # Display final counts
+    total_breach_files = count_files("breach_data")
+    total_infected = len(infected_breach_files)
+    
+    print(f"\nTotal files in breach_data: {total_breach_files}")
+    print(f"Total infected files in breach_data: {total_infected}")
+    
+    if total_breach_files > 0:
+        infection_rate = (total_infected / total_breach_files) * 100
+        print(f"Infection rate: {infection_rate:.1f}%")
+    
+    print("\n" + "="*60)
+    print("ALL TESTS COMPLETED!")
+    print("="*60)
